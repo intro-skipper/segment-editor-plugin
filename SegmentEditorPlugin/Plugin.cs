@@ -23,7 +23,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     }
 
     /// <inheritdoc />
-    public override string Name => "SegmentEditor";
+    public override string Name => "Segment Editor";
 
     /// <inheritdoc />
     public override Guid Id => Guid.Parse("ace21d44-a4e5-4a85-ae75-acd2e24a9574");
