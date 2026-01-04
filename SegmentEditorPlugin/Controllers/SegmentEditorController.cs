@@ -64,4 +64,16 @@ public class SegmentEditorController : ControllerBase
         var contentType = _contentTypes.GetValueOrDefault(Path.GetExtension(path), "application/octet-stream");
         return new FileStreamResult(stream, contentType);
     }
+
+    /// <summary>
+    /// Gets the favicon.
+    /// </summary>
+    /// <returns>The action result.</returns>
+    [HttpGet("favicon.png")]
+    [ResponseCache(Duration = 86400)]
+    public ActionResult GetFavicon()
+    {
+        var stream = _assembly.GetManifestResourceStream("SegmentEditorPlugin.dist.favicon.png");
+        return stream == null ? NotFound() : new FileStreamResult(stream, "image/png");
+    }
 }

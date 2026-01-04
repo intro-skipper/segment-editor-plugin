@@ -5,7 +5,7 @@
     <title>Segment Editor</title>
 </head>
 <body>
-    <div id="SegmentEditor" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+    <div id="SegmentEditor" data-role="page" class="page type-interior pluginConfigurationPage">
         <div data-role="content">
             <style>
                 .plugin-iframe {
@@ -13,11 +13,40 @@
                     height: calc(100vh - 127px);
                     border: none;
                 }
+
+                .mobile-warning {
+                    display: none;
+                    text-align: center;
+                    padding: 2em;
+                }
+
+                .mobile-warning p {
+                    margin-bottom: 1em;
+                }
+
+                .layout-mobile .plugin-iframe {
+                    display: none;
+                }
+
+                .layout-mobile .mobile-warning {
+                    display: block;
+                }
+
+                .layout-desktop .mobile-warning {
+                    display: none;
+                }
             </style>
             <div class="content-primary">
                 <iframe src="/SegmentEditor" class="plugin-iframe"></iframe>
+                <div class="mobile-warning">
+                    <p>The Segment Editor is not available inside the Jellyfin Mobile App.</p>
+                    <p>Open it in an external browser: <span id="segmentEditorUrl"></span></p>
+                </div>
             </div>
         </div>
+        <script>
+            document.getElementById('segmentEditorUrl').textContent = ApiClient.serverAddress() + '/SegmentEditor';
+        </script>
     </div>
 </body>
 </html>
