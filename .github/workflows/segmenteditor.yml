@@ -1,0 +1,50 @@
+name: '🏗️ Build Segment Editor'
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: intro-skipper/segment-editor
+          ref: redesign
+          path: segment-editor
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 10
+
+      - name: Install dependencies
+        working-directory: ./segment-editor
+        run: pnpm install
+
+      - name: Build project
+        working-directory: ./segment-editor
+        run: pnpm build
+
+      - uses: actions/checkout@v6
+        with:
+          repository: intro-skipper/segment-editor-plugin
+          ref: master
+          path: segment-editor-plugin
+
+      - name: Move dist to plugin
+        run: mv -f ./segment-editor/dist  ./segment-editor-plugin/SegmentEditorPlugin/dist
+
+      - name: Commit dist
+        working-directory: ./segment-editor-plugin
+        run: |
+          git config --local user.name 'Segment Editor (Automated)'
+          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A SegmentEditorPlugin/dist
+          if git commit -m "[Automated] Update built Segment Editor"; then
+            git push
+          fi
