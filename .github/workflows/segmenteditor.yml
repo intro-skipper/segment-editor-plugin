@@ -37,7 +37,9 @@ jobs:
           path: segment-editor-plugin
 
       - name: Move dist to plugin
-        run: mv -f ./segment-editor/dist  ./segment-editor-plugin/SegmentEditorPlugin/dist
+        run: |
+          rm -r ./segment-editor-plugin/SegmentEditorPlugin/dist
+          mv -f ./segment-editor/dist  ./segment-editor-plugin/SegmentEditorPlugin/
 
       - name: Commit dist
         working-directory: ./segment-editor-plugin
