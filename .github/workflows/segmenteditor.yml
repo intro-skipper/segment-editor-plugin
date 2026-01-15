@@ -2,6 +2,12 @@ name: '🏗️ Build Segment Editor'
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        type: string
+        description: 'Segment Editor branch'
+        required: true
+        default: 'redesign'
 
 permissions:
   contents: write
@@ -14,7 +20,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           repository: intro-skipper/segment-editor
-          ref: redesign
+          ref: "${{ github.event.inputs.branch }}"
           path: segment-editor
 
       - uses: pnpm/action-setup@v4
