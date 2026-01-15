@@ -11,10 +11,6 @@ on:
       - master
     paths-ignore:
       - '**/*.md'
-  workflow_run:
-    workflows: ['🏗️ Build Segment Editor']
-    types:
-      - completed
   workflow_dispatch:
 
 jobs:
