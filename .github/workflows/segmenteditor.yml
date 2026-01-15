@@ -50,3 +50,6 @@ jobs:
           if git commit -m "[Automated] Update built Segment Editor"; then
             git push
           fi
+  call:
+    needs: build
+    uses: jellyfin/jellyfin-meta-plugins/.github/workflows/build.yaml@master
