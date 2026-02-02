@@ -13,6 +13,47 @@ on:
       - '**/*.md'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  call:
-    uses: jellyfin/jellyfin-meta-plugins/.github/workflows/build.yaml@master
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/checkout@v6
+        with:
+          repository: intro-skipper/segment-editor
+          ref: plugin
+          path: segment-editor
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 10
+
+      - name: Install segment editor dependencies
+        working-directory: ./segment-editor
+        run: pnpm install
+
+      - name: Build segment editor plugin assets
+        working-directory: ./segment-editor
+        run: pnpm build:plugin
+
+      - name: Sync plugin assets
+        run: |
+          rm -rf ./SegmentEditorPlugin/dist/assets
+          mkdir -p ./SegmentEditorPlugin/dist/assets
+          cp -R ./segment-editor/dist-plugin/assets/. ./SegmentEditorPlugin/dist/assets/
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore plugin
+        run: dotnet restore SegmentEditorPlugin.sln
+
+      - name: Build plugin
+        run: dotnet build SegmentEditorPlugin.sln -c Release --no-restore
