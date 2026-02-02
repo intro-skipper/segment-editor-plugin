@@ -29,6 +29,13 @@ jobs:
           ref: plugin
           path: segment-editor
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: 'pnpm'
+          cache-dependency-path: 'segment-editor/pnpm-lock.yaml'
+
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         with:
@@ -57,3 +64,15 @@ jobs:
 
       - name: Build plugin
         run: dotnet build SegmentEditorPlugin.sln -c Release --no-restore
+
+      - name: Retrieve commit identification
+        run: |
+          GIT_HASH=$(git rev-parse --short HEAD)
+          echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: SegmentEditorPlugin-${{ env.GIT_HASH }}.dll
+          path: SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll
+          if-no-files-found: error
