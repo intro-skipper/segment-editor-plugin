@@ -29,17 +29,17 @@ jobs:
           ref: plugin
           path: segment-editor
 
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "lts/*"
           cache: 'pnpm'
           cache-dependency-path: 'segment-editor/pnpm-lock.yaml'
-
-      - uses: pnpm/action-setup@v4
-        name: Install pnpm
-        with:
-          version: 10
 
       - name: Install segment editor dependencies
         working-directory: ./segment-editor
