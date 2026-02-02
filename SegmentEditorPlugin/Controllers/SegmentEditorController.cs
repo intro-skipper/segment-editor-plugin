@@ -25,7 +25,8 @@ public class SegmentEditorController : ControllerBase
             [".png"] = "image/png",
             [".jpg"] = "image/jpeg",
             [".jpeg"] = "image/jpeg",
-            [".json"] = "application/json"
+            [".json"] = "application/json",
+            [".wasm"] = "application/wasm"
         }.ToFrozenDictionary();
 
     /// <summary>

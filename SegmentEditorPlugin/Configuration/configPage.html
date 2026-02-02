@@ -1,52 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Segment Editor</title>
-</head>
 <body>
     <div id="SegmentEditor" data-role="page" class="page type-interior pluginConfigurationPage">
-        <div data-role="content">
-            <style>
-                .plugin-iframe {
-                    width: 100%;
-                    height: calc(100vh - 127px);
-                    border: none;
-                }
+        <style>
+            body.segment-editor-hide-jf-header header.MuiAppBar-root {
+                display: none !important;
+            }
 
-                .mobile-warning {
-                    display: none;
-                    text-align: center;
-                    padding: 2em;
-                }
-
-                .mobile-warning p {
-                    margin-bottom: 1em;
-                }
-
-                .layout-mobile .plugin-iframe {
-                    display: none;
-                }
-
-                .layout-mobile .mobile-warning {
-                    display: block;
-                }
-
-                .layout-desktop .mobile-warning {
-                    display: none;
-                }
-            </style>
-            <div class="content-primary">
-                <iframe src="/SegmentEditor" class="plugin-iframe"></iframe>
-                <div class="mobile-warning">
-                    <p>The Segment Editor is not available inside the Jellyfin Mobile App.</p>
-                    <p>Open it in an external browser: <span id="segmentEditorUrl"></span></p>
-                </div>
-            </div>
-        </div>
+            body.segment-editor-hide-jf-header .page.type-interior {
+                padding-top: 0 !important;
+            }
+        </style>
         <script>
-            document.getElementById('segmentEditorUrl').textContent = ApiClient.serverAddress() + '/SegmentEditor';
+            (() => {
+                const root = document.getElementById('SegmentEditor');
+                if (!root || !document.body || !window) {
+                    return;
+                }
+
+                const className = 'segment-editor-hide-jf-header';
+
+                const isVisible = () => {
+                    if (!document.body.contains(root)) {
+                        return false;
+                    }
+
+                    if (root.hasAttribute('hidden') || root.getAttribute('aria-hidden') === 'true') {
+                        return false;
+                    }
+
+                    const style = window.getComputedStyle(root);
+                    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                        return false;
+                    }
+
+                    return root.getClientRects().length > 0;
+                };
+
+                const syncHeader = () => {
+                    document.body.classList.toggle(className, isVisible());
+                };
+
+                syncHeader();
+
+                const bodyObserver = new MutationObserver(syncHeader);
+                bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+                const rootObserver = new MutationObserver(syncHeader);
+                rootObserver.observe(root, {
+                    attributes: true,
+                    attributeFilter: ['class', 'style', 'hidden', 'aria-hidden'],
+                });
+
+                const clearHeader = () => document.body.classList.remove(className);
+                window.addEventListener('pagehide', clearHeader);
+                window.addEventListener('beforeunload', clearHeader);
+                window.addEventListener('hashchange', syncHeader);
+                window.addEventListener('popstate', syncHeader);
+                document.addEventListener('visibilitychange', syncHeader);
+            })();
         </script>
+        <div data-role="content">
+            <div id="app"></div>
+        </div>
+
+        <script type="module" crossorigin src="/SegmentEditor/assets/index.js"></script>
+        <link rel="modulepreload" crossorigin href="/SegmentEditor/assets/tanstack-vendor.js">
+        <link rel="modulepreload" crossorigin href="/SegmentEditor/assets/i18n-vendor.js">
+        <link rel="modulepreload" crossorigin href="/SegmentEditor/assets/ui-vendor.js">
+        <link rel="modulepreload" crossorigin href="/SegmentEditor/assets/react-vendor.js">
+        <link rel="modulepreload" crossorigin href="/SegmentEditor/assets/jellyfin-vendor.js">
+        <link rel="stylesheet" crossorigin href="/SegmentEditor/assets/index.css">
     </div>
 </body>
 </html>

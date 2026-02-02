@@ -7,7 +7,7 @@ on:
         type: string
         description: 'Segment Editor branch'
         required: true
-        default: 'redesign'
+        default: 'plugin'
 
 permissions:
   contents: write
@@ -34,7 +34,7 @@ jobs:
 
       - name: Build project
         working-directory: ./segment-editor
-        run: pnpm build
+        run: pnpm build:plugin
 
       - uses: actions/checkout@v6
         with:
@@ -42,17 +42,18 @@ jobs:
           ref: ${{ github.ref }}
           path: segment-editor-plugin
 
-      - name: Move dist to plugin
+      - name: Sync plugin assets
         run: |
-          rm -r ./segment-editor-plugin/SegmentEditorPlugin/dist
-          mv -f ./segment-editor/dist  ./segment-editor-plugin/SegmentEditorPlugin/
+          rm -rf ./segment-editor-plugin/SegmentEditorPlugin/dist/assets
+          mkdir -p ./segment-editor-plugin/SegmentEditorPlugin/dist/assets
+          cp -R ./segment-editor/dist-plugin/assets/. ./segment-editor-plugin/SegmentEditorPlugin/dist/assets/
 
       - name: Commit dist
         working-directory: ./segment-editor-plugin
         run: |
           git config --local user.name 'Segment Editor (Automated)'
           git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A SegmentEditorPlugin/dist
+          git add -A SegmentEditorPlugin/dist/assets
           if git commit -m "[Automated] Update built Segment Editor"; then
             git push
           fi
