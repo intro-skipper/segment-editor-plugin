@@ -53,6 +53,8 @@ jobs:
         run: |
           rm -rf ./SegmentEditorPlugin/dist/assets
           mkdir -p ./SegmentEditorPlugin/dist/assets
+          cp ./segment-editor/dist-plugin/index.html ./SegmentEditorPlugin/dist/index.html
+          cp ./segment-editor/dist-plugin/favicon.png ./SegmentEditorPlugin/dist/favicon.png
           cp -R ./segment-editor/dist-plugin/assets/. ./SegmentEditorPlugin/dist/assets/
 
       - uses: actions/setup-dotnet@v4

@@ -72,6 +72,18 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
         return new FileStreamResult(stream, contentType);
     }
 
+    /// <summary>
+    /// Gets the favicon.
+    /// </summary>
+    /// <returns>The action result.</returns>
+    [HttpGet("favicon.png")]
+    [ResponseCache(Duration = 86400)]
+    public ActionResult GetFavicon()
+    {
+        var stream = _assembly.GetManifestResourceStream("SegmentEditorPlugin.dist.favicon.png");
+        return stream == null ? NotFound() : new FileStreamResult(stream, "image/png");
+    }
+
     /// <inheritdoc />
     [NonAction]
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)

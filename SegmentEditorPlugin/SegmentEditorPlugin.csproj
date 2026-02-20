@@ -25,6 +25,10 @@
   <ItemGroup>
     <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+    <None Remove="dist\index.html" />
+    <EmbeddedResource Include="dist\index.html" />
+    <None Remove="dist\favicon.png" />
+    <EmbeddedResource Include="dist\favicon.png" />
     <None Remove="dist\assets\**" />
     <EmbeddedResource Include="dist\assets\**" />
   </ItemGroup>
