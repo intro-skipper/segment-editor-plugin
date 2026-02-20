@@ -1,6 +1,7 @@
 using System.Collections.Frozen;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace SegmentEditorPlugin.Controllers;
 
@@ -9,8 +10,13 @@ namespace SegmentEditorPlugin.Controllers;
 /// </summary>
 [Route("SegmentEditor")]
 [ApiController]
-public class SegmentEditorController : ControllerBase
+public class SegmentEditorController : ControllerBase, IAsyncActionFilter
 {
+    private const string CrossOriginOpenerPolicyHeader = "Cross-Origin-Opener-Policy";
+    private const string CrossOriginEmbedderPolicyHeader = "Cross-Origin-Embedder-Policy";
+    private const string CrossOriginOpenerPolicyValue = "same-origin";
+    private const string CrossOriginEmbedderPolicyValue = "credentialless";
+
     private static readonly Assembly _assembly = Assembly.GetExecutingAssembly();
 
     private static readonly FrozenDictionary<string, string> _contentTypes =
@@ -66,15 +72,12 @@ public class SegmentEditorController : ControllerBase
         return new FileStreamResult(stream, contentType);
     }
 
-    /// <summary>
-    /// Gets the favicon.
-    /// </summary>
-    /// <returns>The action result.</returns>
-    [HttpGet("favicon.png")]
-    [ResponseCache(Duration = 86400)]
-    public ActionResult GetFavicon()
+    /// <inheritdoc />
+    [NonAction]
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        var stream = _assembly.GetManifestResourceStream("SegmentEditorPlugin.dist.favicon.png");
-        return stream == null ? NotFound() : new FileStreamResult(stream, "image/png");
+        context.HttpContext.Response.Headers[CrossOriginOpenerPolicyHeader] = CrossOriginOpenerPolicyValue;
+        context.HttpContext.Response.Headers[CrossOriginEmbedderPolicyHeader] = CrossOriginEmbedderPolicyValue;
+        await next().ConfigureAwait(false);
     }
 }
