@@ -79,20 +79,31 @@
                 });
 
                 const clearHeader = () => document.body.classList.remove(className);
-                const clearHeaderAndStopPlayback = () => {
-                    stopPlayback();
-                    clearHeader();
-                };
-
-                const handleBackNavigation = () => {
+                const handleNavigationChange = () => {
                     stopPlayback();
                     syncHeader();
                 };
 
-                window.addEventListener('pagehide', clearHeaderAndStopPlayback);
-                window.addEventListener('beforeunload', clearHeaderAndStopPlayback);
-                window.addEventListener('hashchange', syncHeader);
-                window.addEventListener('popstate', handleBackNavigation);
+                const teardown = () => {
+                    bodyObserver.disconnect();
+                    rootObserver.disconnect();
+                    window.removeEventListener('pagehide', handlePageExit);
+                    window.removeEventListener('beforeunload', handlePageExit);
+                    window.removeEventListener('hashchange', handleNavigationChange);
+                    window.removeEventListener('popstate', handleNavigationChange);
+                    document.removeEventListener('visibilitychange', syncHeader);
+                    clearHeader();
+                };
+
+                const handlePageExit = () => {
+                    stopPlayback();
+                    teardown();
+                };
+
+                window.addEventListener('pagehide', handlePageExit);
+                window.addEventListener('beforeunload', handlePageExit);
+                window.addEventListener('hashchange', handleNavigationChange);
+                window.addEventListener('popstate', handleNavigationChange);
                 document.addEventListener('visibilitychange', syncHeader);
             })();
         </script>
