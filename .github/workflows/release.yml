@@ -1,0 +1,199 @@
+name: "Release Plugin"
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  repository_dispatch:
+    types:
+      - segment-editor-master-updated
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Mark release as prerelease"
+        required: false
+        default: false
+        type: boolean
+      force_release:
+        description: "Release even if upstream commit did not change"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-plugin
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Checkout segment editor
+        uses: actions/checkout@v6
+        with:
+          repository: intro-skipper/segment-editor
+          ref: master
+          path: segment-editor
+
+      - name: Detect upstream changes
+        id: detect
+        shell: bash
+        run: |
+          UPSTREAM_SHA=$(git -C segment-editor rev-parse HEAD)
+          STATE_FILE=".github/segment-editor-master.sha"
+          LAST_SHA=""
+
+          if [ -f "$STATE_FILE" ]; then
+            LAST_SHA=$(cat "$STATE_FILE")
+          fi
+
+          SHOULD_RELEASE="false"
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            SHOULD_RELEASE="true"
+          elif [ "$UPSTREAM_SHA" != "$LAST_SHA" ]; then
+            SHOULD_RELEASE="true"
+          fi
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_release }}" = "true" ]; then
+            SHOULD_RELEASE="true"
+          fi
+
+          echo "upstream_sha=$UPSTREAM_SHA" >> "$GITHUB_OUTPUT"
+          echo "should_release=$SHOULD_RELEASE" >> "$GITHUB_OUTPUT"
+
+          if [ "$SHOULD_RELEASE" = "false" ]; then
+            echo "No segment-editor master update detected; skipping release."
+          fi
+
+      - name: Bump plugin version
+        if: steps.detect.outputs.should_release == 'true'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import re
+
+          path = "Directory.Build.props"
+          with open(path, "r", encoding="utf-8") as file:
+              content = file.read()
+
+          match = re.search(r"<Version>(\d+)\.(\d+)\.(\d+)\.(\d+)</Version>", content)
+          if not match:
+              raise SystemExit("Could not parse <Version> in Directory.Build.props")
+
+          major, minor, patch, revision = match.groups()
+          new_version = f"{major}.{minor}.{int(patch) + 1}.{revision}"
+
+          for tag in ("Version", "AssemblyVersion", "FileVersion"):
+              content, count = re.subn(
+                  rf"<{tag}>\d+\.\d+\.\d+\.\d+</{tag}>",
+                  f"<{tag}>{new_version}</{tag}>",
+                  content,
+                  count=1,
+              )
+              if count != 1:
+                  raise SystemExit(f"Could not update <{tag}> in Directory.Build.props")
+
+          with open(path, "w", encoding="utf-8", newline="\n") as file:
+              file.write(content)
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"NEW_VERSION={new_version}\n")
+              env.write(f"RELEASE_TAG=v{new_version}\n")
+
+          print(f"Bumped plugin version to {new_version}")
+          PY
+
+      - name: Setup pnpm
+        if: steps.detect.outputs.should_release == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        if: steps.detect.outputs.should_release == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "lts/*"
+          cache: "pnpm"
+          cache-dependency-path: "segment-editor/pnpm-lock.yaml"
+
+      - name: Build segment editor plugin assets
+        if: steps.detect.outputs.should_release == 'true'
+        working-directory: ./segment-editor
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build:plugin
+
+      - name: Sync plugin assets
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          rm -rf ./SegmentEditorPlugin/dist/assets
+          mkdir -p ./SegmentEditorPlugin/dist/assets
+          cp ./segment-editor/dist-plugin/index.html ./SegmentEditorPlugin/dist/index.html
+          cp ./segment-editor/dist-plugin/favicon.png ./SegmentEditorPlugin/dist/favicon.png
+          cp -R ./segment-editor/dist-plugin/assets/. ./SegmentEditorPlugin/dist/assets/
+
+      - name: Setup .NET
+        if: steps.detect.outputs.should_release == 'true'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore dependencies
+        if: steps.detect.outputs.should_release == 'true'
+        run: dotnet restore SegmentEditorPlugin.sln
+
+      - name: Build
+        if: steps.detect.outputs.should_release == 'true'
+        run: dotnet build SegmentEditorPlugin.sln --configuration Release --no-restore
+
+      - name: Package release artifact
+        if: steps.detect.outputs.should_release == 'true'
+        run: zip -j "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll
+
+      - name: Save upstream state
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          mkdir -p .github
+          echo "${{ steps.detect.outputs.upstream_sha }}" > .github/segment-editor-master.sha
+
+      - name: Commit version and state updates
+        if: steps.detect.outputs.should_release == 'true'
+        run: |
+          git add Directory.Build.props .github/segment-editor-master.sha
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "chore: release ${{ env.RELEASE_TAG }}"
+            git push origin HEAD:${{ github.event.repository.default_branch }}
+          fi
+
+      - name: Publish release
+        if: steps.detect.outputs.should_release == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          PRERELEASE="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.prerelease }}" = "true" ]; then
+            PRERELEASE="true"
+          fi
+
+          if [ "$PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          else
+            PRERELEASE_FLAG=""
+          fi
+
+          if gh release view "${{ env.RELEASE_TAG }}" >/dev/null 2>&1; then
+            gh release upload "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --clobber
+          else
+            gh release create "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --title "${{ env.RELEASE_TAG }}" --generate-notes --target "${{ github.event.repository.default_branch }}" ${PRERELEASE_FLAG}
+          fi
