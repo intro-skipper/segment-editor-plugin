@@ -41,6 +41,32 @@
                     document.body.classList.toggle(className, isVisible());
                 };
 
+                const stopPlayback = () => {
+                    const mediaElements = document.querySelectorAll('video, audio');
+                    for (const media of mediaElements) {
+                        try {
+                            media.pause();
+                        } catch {}
+
+                        try {
+                            media.removeAttribute('src');
+                            const sources = media.querySelectorAll('source');
+                            for (const source of sources) {
+                                source.removeAttribute('src');
+                            }
+
+                            media.load();
+                        } catch {}
+                    }
+
+                    const dashboard = window.Dashboard;
+                    if (dashboard && typeof dashboard.stopPlayback === 'function') {
+                        try {
+                            dashboard.stopPlayback();
+                        } catch {}
+                    }
+                };
+
                 syncHeader();
 
                 const bodyObserver = new MutationObserver(syncHeader);
@@ -53,10 +79,20 @@
                 });
 
                 const clearHeader = () => document.body.classList.remove(className);
-                window.addEventListener('pagehide', clearHeader);
-                window.addEventListener('beforeunload', clearHeader);
+                const clearHeaderAndStopPlayback = () => {
+                    stopPlayback();
+                    clearHeader();
+                };
+
+                const handleBackNavigation = () => {
+                    stopPlayback();
+                    syncHeader();
+                };
+
+                window.addEventListener('pagehide', clearHeaderAndStopPlayback);
+                window.addEventListener('beforeunload', clearHeaderAndStopPlayback);
                 window.addEventListener('hashchange', syncHeader);
-                window.addEventListener('popstate', syncHeader);
+                window.addEventListener('popstate', handleBackNavigation);
                 document.addEventListener('visibilitychange', syncHeader);
             })();
         </script>
