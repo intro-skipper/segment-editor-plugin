@@ -70,6 +70,9 @@ jobs:
       - name: Build
         run: dotnet build SegmentEditorPlugin.sln --configuration Release --no-restore
 
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+
       - name: Retrieve commit identification
         run: |
           GIT_HASH=$(git rev-parse --short HEAD)
