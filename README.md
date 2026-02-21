@@ -9,7 +9,7 @@
   </p>
 </div>
 
-This repository packages the Segment Editor web app (built from `intro-skipper/segment-editor`) as a Jellyfin server plugin.
+This repository packages the Segment Editor web app (built from [intro-skipper/segment-editor](https://github.com/intro-skipper/segment-editor)) as a Jellyfin server plugin.
 
 ## Installation
 
