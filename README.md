@@ -11,26 +11,9 @@
 
 This repository packages the Segment Editor web app (built from `intro-skipper/segment-editor`) as a Jellyfin server plugin.
 
-## What you get
-
-- A new main menu entry: "Segment Editor"
-- A plugin page that hosts the Segment Editor web UI
-- Embedded static assets served by the Jellyfin server at `/SegmentEditor/*` (no separate web hosting)
-
-## Requirements
-
-- Jellyfin Server compatible with the referenced Jellyfin packages (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`)
-- For building from source:
-  - .NET SDK 9.0 (see `.github/workflows/build.yml`)
-  - Node.js (LTS) + `pnpm` 10 (only if rebuilding frontend assets)
-
-> [!NOTE]
-> The plugin project currently targets `net9.0` (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`).
-> Your Jellyfin server must be able to load `net9.0` plugins.
-
 ## Installation
 
-## Manifest URL (Recommended)
+### Manifest URL (Recommended)
 
 Add the Intro Skipper repository to Jellyfin, then install "Segment Editor" from the Catalog.
 
@@ -42,7 +25,9 @@ https://intro-skipper.org/manifest.json
 > This URL returns a manifest based on the Jellyfin version used to access it.
 > It will not return a manifest when viewed in a browser (no Jellyfin version is provided).
 
-### Option A: Install from a release
+### Alternative installation methods
+
+#### Install from a GitHub release
 
 1. Download the latest release zip.
 2. Extract `SegmentEditorPlugin.dll`.
@@ -52,7 +37,7 @@ https://intro-skipper.org/manifest.json
    - Docker: mount into the container's `/config/plugins/SegmentEditorPlugin/`
 4. Restart Jellyfin.
 
-### Option B: Build and install locally
+#### Build and install locally
 
 ```bash
 dotnet restore SegmentEditorPlugin.sln
@@ -66,6 +51,24 @@ Then copy `SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll` to yo
 - Open the Jellyfin web UI and navigate to "Segment Editor" from the main menu.
 - You can also reach it from the Dashboard plugin page (Dashboard -> Plugins).
 - Direct URL: `http://myserver:8096/SegmentEditor`
+
+## What you get
+
+- A new main menu entry: "Segment Editor"
+- A plugin page that hosts the Segment Editor web UI
+- Embedded static assets served by the Jellyfin server at `/SegmentEditor/*` (no separate web hosting)
+
+## Requirements
+
+- Jellyfin Server 10.11.5 or newer
+- Jellyfin Server compatible with the referenced Jellyfin packages (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`)
+- For building from source:
+  - .NET SDK 9.0 (see `.github/workflows/build.yml`)
+  - Node.js (LTS) + `pnpm` 10 (only if rebuilding frontend assets)
+
+> [!NOTE]
+> The plugin project currently targets `net9.0` (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`).
+> Your Jellyfin server must be able to load `net9.0` plugins.
 
 ## Development
 
