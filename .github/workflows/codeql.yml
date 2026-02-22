@@ -36,6 +36,16 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Ensure dist placeholders exist
+        run: |
+          mkdir -p ./SegmentEditorPlugin/dist/assets
+          if [ ! -f ./SegmentEditorPlugin/dist/index.html ]; then
+            printf '<!doctype html><title>Segment Editor</title>' > ./SegmentEditorPlugin/dist/index.html
+          fi
+          if [ ! -f ./SegmentEditorPlugin/dist/favicon.png ]; then
+            : > ./SegmentEditorPlugin/dist/favicon.png
+          fi
+
       - name: Restore dependencies
         run: dotnet restore SegmentEditorPlugin.sln
 
