@@ -1,16 +1,13 @@
 ---
-name: "SegmentEditor"
-guid: "eb5d7894-8eef-4b36-aa6f-5d124e828ce1"
+name: "Segment Editor"
+guid: "ace21d44-a4e5-4a85-ae75-acd2e24a9574"
 version: "1.0.0.0"
 targetAbi: "10.11.5.0"
 framework: "net9.0"
-overview: "Short description about your plugin"
-description: >
-  This is a longer description that can span more than one
-  line and include details about your plugin.
-category: "General"
-owner: "jellyfin"
+overview: "Segment editing UI embedded as a plugin page"
+description: "Packages the Segment Editor web app (built from intro-skipper/segment-editor) as a Jellyfin server plugin"
+category: "MoviesAndShows"
+owner: "Intro Skipper"
 artifacts:
 - "SegmentEditorPlugin.dll"
-changelog: >
-  changelog
+changelog: "- See the full changelog at [GitHub](https://github.com/intro-skipper/segment-editor-plugin/blob/master/CHANGELOG.md)"
