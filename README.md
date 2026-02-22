@@ -2,7 +2,7 @@
 
 <div align="center">
   <p>
-    <img alt="Segment Editor" src="images/logo.png" />
+    <img alt="Segment Editor" src="images/logo_rounded.png" />
   </p>
   <p>
     Segment editing UI embedded into Jellyfin as a plugin page.
