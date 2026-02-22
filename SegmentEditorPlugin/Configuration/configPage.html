@@ -84,24 +84,14 @@
                     syncHeader();
                 };
 
-                const teardown = () => {
-                    bodyObserver.disconnect();
-                    rootObserver.disconnect();
-                    window.removeEventListener('pagehide', handlePageExit);
-                    window.removeEventListener('beforeunload', handlePageExit);
-                    window.removeEventListener('hashchange', handleNavigationChange);
-                    window.removeEventListener('popstate', handleNavigationChange);
-                    document.removeEventListener('visibilitychange', syncHeader);
-                    clearHeader();
-                };
-
                 const handlePageExit = () => {
                     stopPlayback();
-                    teardown();
+                    clearHeader();
                 };
 
                 window.addEventListener('pagehide', handlePageExit);
                 window.addEventListener('beforeunload', handlePageExit);
+                window.addEventListener('pageshow', syncHeader);
                 window.addEventListener('hashchange', handleNavigationChange);
                 window.addEventListener('popstate', handleNavigationChange);
                 document.addEventListener('visibilitychange', syncHeader);
