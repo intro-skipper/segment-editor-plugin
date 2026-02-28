@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   build:
@@ -32,6 +33,44 @@ jobs:
           repository: intro-skipper/segment-editor
           ref: master
           path: segment-editor
+
+      - name: Load build channel settings
+        id: build_config
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import re
+
+          with open("build.yaml", "r", encoding="utf-8") as file:
+              content = file.read()
+
+          match = re.search(r'(?im)^releaseChannel:\s*"?([A-Za-z0-9._-]+)"?\s*$', content)
+          channel = match.group(1).strip().lower() if match else "stable"
+
+          prerelease = "true" if channel in {
+              "unstable",
+              "prerelease",
+              "pre-release",
+              "beta",
+              "nightly",
+              "dev",
+              "canary",
+          } else "false"
+          sdk_tag = "unstable" if prerelease == "true" else "latest"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"release_channel={channel}\n")
+              output.write(f"prerelease={prerelease}\n")
+              output.write(f"sdk_tag={sdk_tag}\n")
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"PRERELEASE={prerelease}\n")
+              env.write(f"RELEASE_CHANNEL={channel}\n")
+              env.write(f"JELLYFIN_SDK_TAG={sdk_tag}\n")
+
+          print(f"releaseChannel={channel} prerelease={prerelease} sdkTag={sdk_tag}")
+          PY
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -49,6 +88,7 @@ jobs:
         working-directory: ./segment-editor
         run: |
           pnpm install --frozen-lockfile
+          pnpm add --no-save "@jellyfin/sdk@${{ steps.build_config.outputs.sdk_tag }}"
           pnpm build:plugin
 
       - name: Sync plugin assets
@@ -62,7 +102,22 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
+
+      - name: Configure NuGet for unstable Jellyfin packages
+        if: steps.build_config.outputs.prerelease == 'true'
+        run: |
+          dotnet nuget remove source github-jellyfin || true
+          dotnet nuget add source --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github-jellyfin "https://nuget.pkg.github.com/jellyfin/index.json"
+
+      - name: Update Jellyfin dependencies
+        run: |
+          dotnet tool update --global dotnet-outdated-tool || dotnet tool install --global dotnet-outdated-tool
+          if [ "${{ steps.build_config.outputs.prerelease }}" = "true" ]; then
+            dotnet outdated -pre Always -u -inc Jellyfin
+          else
+            dotnet outdated -u -inc Jellyfin
+          fi
 
       - name: Restore dependencies
         run: dotnet restore SegmentEditorPlugin.sln
@@ -82,5 +137,5 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: SegmentEditorPlugin-${{ env.GIT_HASH }}.dll
-          path: SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll
+          path: SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll
           if-no-files-found: error

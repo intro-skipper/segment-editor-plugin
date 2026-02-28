@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>SegmentEditorPlugin</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -12,8 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.5" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.5" />
+    <PackageReference Include="Jellyfin.Controller" Version="10.12.*-*" />
+    <PackageReference Include="Jellyfin.Model" Version="10.12.*-*" />
   </ItemGroup>
 
   <ItemGroup>
