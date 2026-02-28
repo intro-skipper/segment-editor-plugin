@@ -18,7 +18,7 @@ on:
 
 permissions:
   contents: read
-  packages: read
+  packages: write
 
 jobs:
   build:
@@ -107,8 +107,12 @@ jobs:
       - name: Configure NuGet for unstable Jellyfin packages
         if: steps.build_config.outputs.prerelease == 'true'
         run: |
-          dotnet nuget remove source github-jellyfin || true
+          cp nuget/NuGet.Beta.Config SegmentEditorPlugin/NuGet.Config
           dotnet nuget add source --username ${{ github.repository_owner }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github-jellyfin "https://nuget.pkg.github.com/jellyfin/index.json"
+
+      - name: Configure NuGet for stable Jellyfin packages
+        if: steps.build_config.outputs.prerelease != 'true'
+        run: cp nuget/NuGet.Stable.Config SegmentEditorPlugin/NuGet.Config
 
       - name: Update Jellyfin dependencies
         run: |
@@ -120,7 +124,7 @@ jobs:
           fi
 
       - name: Restore dependencies
-        run: dotnet restore SegmentEditorPlugin.sln
+        run: dotnet restore SegmentEditorPlugin.sln --configfile SegmentEditorPlugin/NuGet.Config
 
       - name: Build
         run: dotnet build SegmentEditorPlugin.sln --configuration Release --no-restore

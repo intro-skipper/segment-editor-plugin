@@ -14,7 +14,8 @@
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller" Version="10.12.*-*" />
     <PackageReference Include="Jellyfin.Model" Version="10.12.*-*" />
-    <PackageReference Include="Jellyfin.MediaEncoding.Keyframes" Version="10.11.*-*" />
+    <PackageReference Include="Jellyfin.MediaEncoding.Keyframes" Version="10.11.6" />
+    <PackageReference Include="Jellyfin.Database.Implementations" Version="10.11.6" />
   </ItemGroup>
 
   <ItemGroup>
