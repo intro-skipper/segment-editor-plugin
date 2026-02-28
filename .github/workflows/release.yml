@@ -172,7 +172,7 @@ jobs:
         working-directory: ./segment-editor
         run: |
           pnpm install --frozen-lockfile
-          pnpm add --no-save "@jellyfin/sdk@${{ steps.build_config.outputs.sdk_tag }}"
+          pnpm add "@jellyfin/sdk@${{ steps.build_config.outputs.sdk_tag }}"
           pnpm build:plugin
 
       - name: Sync plugin assets
