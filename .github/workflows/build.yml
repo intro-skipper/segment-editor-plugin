@@ -59,6 +59,32 @@ jobs:
           cp ./segment-editor/dist-plugin/favicon.png ./SegmentEditorPlugin/dist/favicon.png
           cp -R ./segment-editor/dist-plugin/assets/. ./SegmentEditorPlugin/dist/assets/
 
+      - name: Update configPage.html with build output links
+        shell: python3 {0}
+        run: |
+          import re
+          from pathlib import Path
+
+          dist_html = Path("./SegmentEditorPlugin/dist/index.html").read_text()
+          config_path = Path("./SegmentEditorPlugin/Configuration/configPage.html")
+          config_html = config_path.read_text()
+
+          # Extract <script> and <link> tags from dist index.html (top-level, not inline)
+          tags = re.findall(r'^\s*(<(?:script\b[^>]*src=|link\b)[^>]*>(?:</script>)?)', dist_html, re.MULTILINE)
+          new_tags = "\n".join("        " + tag.strip() for tag in tags)
+
+          # Replace the block between </div> (end of data-role content) and </div> (end of #SegmentEditor)
+          # Pattern: match from after "</div>\n" (line 102) through all script/link lines up to the final "    </div>"
+          config_html = re.sub(
+              r'(</div>\n)(        <script\b.*?<link\b[^>]*>)\n(    </div>)',
+              r'\1' + new_tags + r'\n\3',
+              config_html,
+              count=1,
+              flags=re.DOTALL,
+          )
+
+          config_path.write_text(config_html)
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
