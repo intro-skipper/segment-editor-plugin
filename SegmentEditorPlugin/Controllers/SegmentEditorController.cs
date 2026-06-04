@@ -14,8 +14,10 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
 {
     private const string CrossOriginOpenerPolicyHeader = "Cross-Origin-Opener-Policy";
     private const string CrossOriginEmbedderPolicyHeader = "Cross-Origin-Embedder-Policy";
+    private const string CacheControlHeader = "Cache-Control";
     private const string CrossOriginOpenerPolicyValue = "same-origin";
     private const string CrossOriginEmbedderPolicyValue = "credentialless";
+    private const string CacheControlValue = "no-cache";
 
     private static readonly Assembly _assembly = Assembly.GetExecutingAssembly();
 
@@ -42,10 +44,11 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
     /// <returns>The action result.</returns>
     [HttpGet]
     [HttpGet("index.html")]
-    [ResponseCache(Duration = 86400)]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None)]
     public ActionResult GetIndex()
     {
         var stream = _assembly.GetManifestResourceStream("SegmentEditorPlugin.dist.index.html");
+        HttpContext.Response.Headers[CacheControlHeader] = CacheControlValue;
         return stream == null ? NotFound() : new FileStreamResult(stream, "text/html");
     }
 

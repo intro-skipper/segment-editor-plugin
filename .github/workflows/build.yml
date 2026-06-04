@@ -71,6 +71,12 @@ jobs:
 
           # Extract <script> and <link> tags from dist index.html (top-level, not inline)
           tags = re.findall(r'^\s*(<(?:script\b[^>]*src=|link\b)[^>]*>(?:</script>)?)', dist_html, re.MULTILINE)
+          def is_icon_link(tag):
+              rel = re.search(r'\brel=["\']([^"\']*)["\']', tag, re.IGNORECASE)
+              return rel is not None and any(value in {"icon", "apple-touch-icon"} for value in rel.group(1).casefold().split())
+
+          tags = [tag for tag in tags if not is_icon_link(tag)]
+
           new_tags = "\n".join("        " + tag.strip() for tag in tags)
 
           # Replace the block between </div> (end of data-role content) and </div> (end of #SegmentEditor)
