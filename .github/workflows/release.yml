@@ -151,6 +151,24 @@ jobs:
           config_path = Path("./SegmentEditorPlugin/Configuration/configPage.html")
           config_html = config_path.read_text()
 
+          mount_match = re.search(
+              r'<body\b[^>]*>.*?<div\b(?=[^>]*\bid=["\']([^"\']+)["\'])[^>]*>\s*</div>',
+              dist_html,
+              re.IGNORECASE | re.DOTALL,
+          )
+          if mount_match is None:
+              raise RuntimeError("Could not find the frontend mount element in dist/index.html")
+
+          config_html, mount_replacements = re.subn(
+              r'(<div data-role=["\']content["\']>\s*<div id=["\'])[^"\']+(["\']></div>)',
+              rf'\g<1>{mount_match.group(1)}\g<2>',
+              config_html,
+              count=1,
+              flags=re.IGNORECASE,
+          )
+          if mount_replacements != 1:
+              raise RuntimeError("Could not update the config page mount element")
+
           # Extract <script> and <link> tags from dist index.html (top-level, not inline)
           tags = re.findall(r'^\s*(<(?:script\b[^>]*src=|link\b)[^>]*>(?:</script>)?)', dist_html, re.MULTILINE)
           def is_icon_link(tag):
