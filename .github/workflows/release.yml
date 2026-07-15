@@ -177,7 +177,7 @@ jobs:
         if: steps.detect.outputs.should_release == 'true'
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         if: steps.detect.outputs.should_release == 'true'
@@ -189,7 +189,7 @@ jobs:
 
       - name: Package release artifact
         if: steps.detect.outputs.should_release == 'true'
-        run: zip -j "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll
+        run: zip -j "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll
 
       - name: Save upstream state
         if: steps.detect.outputs.should_release == 'true'
