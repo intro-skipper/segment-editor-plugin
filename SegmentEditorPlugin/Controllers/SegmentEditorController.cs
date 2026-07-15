@@ -2,6 +2,7 @@ using System.Collections.Frozen;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Net.Http.Headers;
 
 namespace SegmentEditorPlugin.Controllers;
 
@@ -14,12 +15,16 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
 {
     private const string CrossOriginOpenerPolicyHeader = "Cross-Origin-Opener-Policy";
     private const string CrossOriginEmbedderPolicyHeader = "Cross-Origin-Embedder-Policy";
-    private const string CacheControlHeader = "Cache-Control";
+    private const int AssetCacheDurationSeconds = 86400;
     private const string CrossOriginOpenerPolicyValue = "same-origin";
     private const string CrossOriginEmbedderPolicyValue = "credentialless";
-    private const string CacheControlValue = "no-cache";
+    private const string EntryPointAssetPath = "index.js";
+    private const string NoCacheValue = "no-cache";
+    private const string NoStoreValue = "no-store";
 
-    private static readonly Assembly _assembly = Assembly.GetExecutingAssembly();
+    private static readonly Assembly _assembly = typeof(SegmentEditorController).Assembly;
+    private static readonly EntityTagHeaderValue _entityTag =
+        new($"\"{_assembly.ManifestModule.ModuleVersionId:N}\"");
 
     private static readonly FrozenDictionary<string, string> _contentTypes =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -47,9 +52,7 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None)]
     public ActionResult GetIndex()
     {
-        var stream = _assembly.GetManifestResourceStream("SegmentEditorPlugin.dist.index.html");
-        HttpContext.Response.Headers[CacheControlHeader] = CacheControlValue;
-        return stream == null ? NotFound() : new FileStreamResult(stream, "text/html");
+        return GetEmbeddedResource("SegmentEditorPlugin.dist.index.html", "text/html");
     }
 
     /// <summary>
@@ -58,21 +61,19 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
     /// <param name="path">The resource path.</param>
     /// <returns>The action result.</returns>
     [HttpGet("assets/{**path}")]
-    [ResponseCache(Duration = 86400)]
+    [ResponseCache(Duration = AssetCacheDurationSeconds)]
     public ActionResult GetAssets(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
 
-        var resourcePath = $"SegmentEditorPlugin.dist.assets.{path.Replace('/', '.')}";
-        var stream = _assembly.GetManifestResourceStream(resourcePath);
-
-        if (stream == null)
+        if (string.Equals(path, EntryPointAssetPath, StringComparison.Ordinal))
         {
-            return NotFound();
+            Response.Headers.CacheControl = NoCacheValue;
         }
 
+        var resourcePath = $"SegmentEditorPlugin.dist.assets.{path.Replace('/', '.')}";
         var contentType = _contentTypes.GetValueOrDefault(Path.GetExtension(path), "application/octet-stream");
-        return new FileStreamResult(stream, contentType);
+        return GetEmbeddedResource(resourcePath, contentType);
     }
 
     /// <summary>
@@ -80,19 +81,30 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
     /// </summary>
     /// <returns>The action result.</returns>
     [HttpGet("favicon.png")]
-    [ResponseCache(Duration = 86400)]
+    [ResponseCache(Duration = AssetCacheDurationSeconds)]
     public ActionResult GetFavicon()
     {
-        var stream = _assembly.GetManifestResourceStream("SegmentEditorPlugin.dist.favicon.png");
-        return stream == null ? NotFound() : new FileStreamResult(stream, "image/png");
+        return GetEmbeddedResource("SegmentEditorPlugin.dist.favicon.png", "image/png");
     }
 
     /// <inheritdoc />
     [NonAction]
-    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    public Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         context.HttpContext.Response.Headers[CrossOriginOpenerPolicyHeader] = CrossOriginOpenerPolicyValue;
         context.HttpContext.Response.Headers[CrossOriginEmbedderPolicyHeader] = CrossOriginEmbedderPolicyValue;
-        await next().ConfigureAwait(false);
+        return next();
+    }
+
+    private ActionResult GetEmbeddedResource(string resourcePath, string contentType)
+    {
+        var stream = _assembly.GetManifestResourceStream(resourcePath);
+        if (stream is null)
+        {
+            Response.Headers.CacheControl = NoStoreValue;
+            return NotFound();
+        }
+
+        return File(stream, contentType, lastModified: null, entityTag: _entityTag);
     }
 }
