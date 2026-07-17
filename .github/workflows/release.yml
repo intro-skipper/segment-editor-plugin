@@ -1,11 +1,9 @@
 name: "Release Plugin"
 
+# Releases on this branch are driven by the master branch's release workflow,
+# which dispatches this workflow on ref 12.0 after every upstream check
+# (schedule and repository_dispatch events only ever run on the default branch).
 on:
-  schedule:
-    - cron: "*/30 * * * *"
-  repository_dispatch:
-    types:
-      - segment-editor-master-updated
   workflow_dispatch:
     inputs:
       prerelease:
@@ -26,7 +24,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     concurrency:
-      group: release-plugin
+      group: release-plugin-12.0
       cancel-in-progress: false
 
     steps:
@@ -54,13 +52,11 @@ jobs:
           fi
 
           SHOULD_RELEASE="false"
-          if [ "${{ github.event_name }}" != "schedule" ]; then
-            SHOULD_RELEASE="true"
-          elif [ "$UPSTREAM_SHA" != "$LAST_SHA" ]; then
+          if [ "$UPSTREAM_SHA" != "$LAST_SHA" ]; then
             SHOULD_RELEASE="true"
           fi
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_release }}" = "true" ]; then
+          if [ "${{ inputs.force_release }}" = "true" ]; then
             SHOULD_RELEASE="true"
           fi
 
@@ -223,7 +219,7 @@ jobs:
             echo "No changes to commit."
           else
             git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "chore: release ${{ env.RELEASE_TAG }}"
-            git push origin HEAD:${{ github.event.repository.default_branch }}
+            git push origin HEAD:${{ github.ref_name }}
           fi
 
       - name: Publish release
@@ -232,19 +228,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          PRERELEASE="false"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.prerelease }}" = "true" ]; then
-            PRERELEASE="true"
+          PRERELEASE_FLAG=""
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
           fi
 
-          if [ "$PRERELEASE" = "true" ]; then
-            PRERELEASE_FLAG="--prerelease"
-          else
-            PRERELEASE_FLAG=""
-          fi
+          TARGET_SHA=$(git rev-parse HEAD)
 
           if gh release view "${{ env.RELEASE_TAG }}" >/dev/null 2>&1; then
             gh release upload "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --clobber
           else
-            gh release create "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --title "${{ env.RELEASE_TAG }}" --generate-notes --target "${{ github.event.repository.default_branch }}" ${PRERELEASE_FLAG}
+            gh release create "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --title "${{ env.RELEASE_TAG }}" --generate-notes --target "$TARGET_SHA" ${PRERELEASE_FLAG}
           fi
