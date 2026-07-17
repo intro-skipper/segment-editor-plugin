@@ -2,7 +2,7 @@ name: "Release Plugin"
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "17 4 * * *"
   repository_dispatch:
     types:
       - segment-editor-master-updated
