@@ -73,6 +73,8 @@ Then copy `SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll` to y
 
 The Jellyfin package references use `12.*` to select the latest stable Jellyfin 12.x
 release on restore (currently 12.1). Prereleases and Jellyfin 13 are excluded.
+The release workflow records the resolved Jellyfin version as the minimum target
+ABI in `build.yaml` before publishing.
 
 ## Development
 
