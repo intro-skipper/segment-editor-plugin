@@ -60,7 +60,7 @@ Then copy `SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll` to y
 
 ## Requirements
 
-- Jellyfin Server 12.0.0 or newer
+- Jellyfin Server 12.1 or newer
 - The [Intro Skipper plugin](https://github.com/intro-skipper/intro-skipper) installed
 - Jellyfin Server compatible with the referenced Jellyfin packages (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`)
 - For building from source:
