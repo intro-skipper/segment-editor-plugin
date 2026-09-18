@@ -44,7 +44,7 @@ dotnet restore SegmentEditorPlugin.sln
 dotnet build SegmentEditorPlugin.sln -c Release
 ```
 
-Then copy `SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll` to your Jellyfin plugins directory and restart Jellyfin.
+Then copy `SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll` to your Jellyfin plugins directory and restart Jellyfin.
 
 ## Usage
 
@@ -60,16 +60,21 @@ Then copy `SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll` to yo
 
 ## Requirements
 
-- Jellyfin Server 10.11.5 or newer
+- Jellyfin Server 12.1 or newer
 - The [Intro Skipper plugin](https://github.com/intro-skipper/intro-skipper) installed
 - Jellyfin Server compatible with the referenced Jellyfin packages (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`)
 - For building from source:
-  - .NET SDK 9.0 (see `.github/workflows/build.yml`)
+  - .NET SDK 10.0 (see `.github/workflows/build.yml`)
   - Node.js (LTS) + `pnpm` 10 (only if rebuilding frontend assets)
 
 > [!NOTE]
-> The plugin project currently targets `net9.0` (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`).
-> Your Jellyfin server must be able to load `net9.0` plugins.
+> The plugin project targets `net10.0` (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`).
+> Your Jellyfin server must be able to load `net10.0` plugins.
+
+The Jellyfin package references use `12.*` to select the latest stable Jellyfin 12.x
+release on restore (currently 12.1). Prereleases and Jellyfin 13 are excluded.
+The release workflow records the resolved Jellyfin version as the minimum target
+ABI in `build.yaml` before publishing.
 
 ## Development
 
