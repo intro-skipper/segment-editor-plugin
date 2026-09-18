@@ -234,7 +234,7 @@ dotnet_diagnostic.SA1316.severity = error
 # error on SA1414: Tuple types in signatures should have element names
 dotnet_diagnostic.SA1414.severity = error
 
-# disable warning SA1513: Closing brace should be followed by blank line
+# error on SA1513: Closing brace should be followed by blank line
 dotnet_diagnostic.SA1513.severity = error
 
 # error on SA1518: File is required to end with a single newline character
@@ -413,10 +413,10 @@ dotnet_diagnostic.CA2253.severity = suggestion
 # disable warning CA5394: Do not use insecure randomness
 dotnet_diagnostic.CA5394.severity = suggestion
 
-# error on CA3003: Review code for file path injection vulnerabilities
+# suggestion for CA3003: Review code for file path injection vulnerabilities
 dotnet_diagnostic.CA3003.severity = suggestion
 
-# error on CA3006: Review code for process command injection vulnerabilities
+# suggestion for CA3006: Review code for process command injection vulnerabilities
 dotnet_diagnostic.CA3006.severity = suggestion
 
 ###############
