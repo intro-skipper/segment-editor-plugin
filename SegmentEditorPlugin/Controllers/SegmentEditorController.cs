@@ -46,12 +46,20 @@ public class SegmentEditorController : ControllerBase, IAsyncActionFilter
     /// Gets main index page.
     /// </summary>
     /// <response code="200">Main index page retrieved.</response>
+    /// <response code="302">Redirected from <c>SegmentEditor</c> to <c>SegmentEditor/</c>.</response>
     /// <returns>The action result.</returns>
     [HttpGet]
     [HttpGet("index.html")]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None)]
     public ActionResult GetIndex()
     {
+        // The page's asset URLs are relative and only resolve under the trailing slash.
+        // A relative Location keeps any Jellyfin base URL or proxy prefix intact.
+        if (Request.Path.Value?.EndsWith("/SegmentEditor", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return Redirect($"SegmentEditor/{Request.QueryString}");
+        }
+
         return GetEmbeddedResource("SegmentEditorPlugin.dist.index.html", "text/html");
     }
 
