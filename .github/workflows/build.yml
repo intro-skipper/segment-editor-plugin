@@ -24,22 +24,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Checkout segment editor
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: intro-skipper/segment-editor
           ref: master
           path: segment-editor
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "lts/*"
           cache: "pnpm"
@@ -69,6 +69,24 @@ jobs:
           config_path = Path("./SegmentEditorPlugin/Configuration/configPage.html")
           config_html = config_path.read_text()
 
+          mount_match = re.search(
+              r'<body\b[^>]*>.*?<div\b(?=[^>]*\bid=["\']([^"\']+)["\'])[^>]*>\s*</div>',
+              dist_html,
+              re.IGNORECASE | re.DOTALL,
+          )
+          if mount_match is None:
+              raise RuntimeError("Could not find the frontend mount element in dist/index.html")
+
+          config_html, mount_replacements = re.subn(
+              r'(<div data-role=["\']content["\']>\s*<div id=["\'])[^"\']+(["\']></div>)',
+              rf'\g<1>{mount_match.group(1)}\g<2>',
+              config_html,
+              count=1,
+              flags=re.IGNORECASE,
+          )
+          if mount_replacements != 1:
+              raise RuntimeError("Could not update the config page mount element")
+
           # Extract <script> and <link> tags from dist index.html (top-level, not inline)
           tags = re.findall(r'^\s*(<(?:script\b[^>]*src=|link\b)[^>]*>(?:</script>)?)', dist_html, re.MULTILINE)
           def is_icon_link(tag):
@@ -94,7 +112,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         run: dotnet restore SegmentEditorPlugin.sln
@@ -111,8 +129,8 @@ jobs:
           echo "GIT_HASH=${GIT_HASH}" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: SegmentEditorPlugin-${{ env.GIT_HASH }}.dll
-          path: SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll
+          path: SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll
           if-no-files-found: error
