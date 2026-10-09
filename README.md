@@ -60,7 +60,7 @@ Then copy `SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll` to y
 
 ## Requirements
 
-- Jellyfin Server 12.1 or newer
+- Jellyfin Server at or above the release's `targetAbi` version (see `build.yaml`)
 - The [Intro Skipper plugin](https://github.com/intro-skipper/intro-skipper) installed
 - Jellyfin Server compatible with the referenced Jellyfin packages (see `SegmentEditorPlugin/SegmentEditorPlugin.csproj`)
 - For building from source:
@@ -72,7 +72,7 @@ Then copy `SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll` to y
 > Your Jellyfin server must be able to load `net10.0` plugins.
 
 The Jellyfin package references use `12.*` to select the latest stable Jellyfin 12.x
-release on restore (currently 12.1). Prereleases and Jellyfin 13 are excluded.
+release on restore. Prereleases and Jellyfin 13 are excluded.
 The release workflow records the resolved Jellyfin version as the minimum target
 ABI in `build.yaml` before publishing.
 
