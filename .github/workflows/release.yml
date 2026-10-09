@@ -1,11 +1,9 @@
 name: "Release Plugin"
 
+# Releases on this branch are driven by the master branch's release workflow,
+# which dispatches this workflow on ref 12.0 after every upstream check
+# (schedule and repository_dispatch events only ever run on the default branch).
 on:
-  schedule:
-    - cron: "17 4 * * *"
-  repository_dispatch:
-    types:
-      - segment-editor-master-updated
   workflow_dispatch:
     inputs:
       prerelease:
@@ -26,16 +24,16 @@ jobs:
   release:
     runs-on: ubuntu-latest
     concurrency:
-      group: release-plugin
+      group: release-plugin-12.0
       cancel-in-progress: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Checkout segment editor
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: intro-skipper/segment-editor
           ref: master
@@ -54,13 +52,11 @@ jobs:
           fi
 
           SHOULD_RELEASE="false"
-          if [ "${{ github.event_name }}" != "schedule" ]; then
-            SHOULD_RELEASE="true"
-          elif [ "$UPSTREAM_SHA" != "$LAST_SHA" ]; then
+          if [ "$UPSTREAM_SHA" != "$LAST_SHA" ]; then
             SHOULD_RELEASE="true"
           fi
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.force_release }}" = "true" ]; then
+          if [ "${{ inputs.force_release }}" = "true" ]; then
             SHOULD_RELEASE="true"
           fi
 
@@ -112,13 +108,13 @@ jobs:
 
       - name: Setup pnpm
         if: steps.detect.outputs.should_release == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
       - name: Setup Node.js
         if: steps.detect.outputs.should_release == 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "lts/*"
           cache: "pnpm"
@@ -151,6 +147,24 @@ jobs:
           config_path = Path("./SegmentEditorPlugin/Configuration/configPage.html")
           config_html = config_path.read_text()
 
+          mount_match = re.search(
+              r'<body\b[^>]*>.*?<div\b(?=[^>]*\bid=["\']([^"\']+)["\'])[^>]*>\s*</div>',
+              dist_html,
+              re.IGNORECASE | re.DOTALL,
+          )
+          if mount_match is None:
+              raise RuntimeError("Could not find the frontend mount element in dist/index.html")
+
+          config_html, mount_replacements = re.subn(
+              r'(<div data-role=["\']content["\']>\s*<div id=["\'])[^"\']+(["\']></div>)',
+              rf'\g<1>{mount_match.group(1)}\g<2>',
+              config_html,
+              count=1,
+              flags=re.IGNORECASE,
+          )
+          if mount_replacements != 1:
+              raise RuntimeError("Could not update the config page mount element")
+
           # Extract <script> and <link> tags from dist index.html (top-level, not inline)
           tags = re.findall(r'^\s*(<(?:script\b[^>]*src=|link\b)[^>]*>(?:</script>)?)', dist_html, re.MULTILINE)
           def is_icon_link(tag):
@@ -177,11 +191,39 @@ jobs:
         if: steps.detect.outputs.should_release == 'true'
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         if: steps.detect.outputs.should_release == 'true'
         run: dotnet restore SegmentEditorPlugin.sln
+
+      - name: Update target ABI from restored Jellyfin packages
+        if: steps.detect.outputs.should_release == 'true'
+        shell: python3 {0}
+        run: |
+          import json
+          import re
+          from pathlib import Path
+
+          assets = json.loads(Path("SegmentEditorPlugin/obj/project.assets.json").read_text())
+          versions = {
+              name: next(key.split("/", 1)[1] for key in assets["libraries"] if key.startswith(name + "/"))
+              for name in ("Jellyfin.Controller", "Jellyfin.Model")
+          }
+          version = versions["Jellyfin.Controller"]
+          if len(set(versions.values())) != 1 or re.fullmatch(r"12\.\d+\.\d+", version) is None:
+              raise RuntimeError(f"Expected matching stable Jellyfin 12 packages, got {versions}")
+
+          build_path = Path("build.yaml")
+          build_yaml, replacements = re.subn(
+              r'^targetAbi:.*$',
+              f'targetAbi: "{version}.0"',
+              build_path.read_text(),
+              flags=re.MULTILINE,
+          )
+          if replacements != 1:
+              raise RuntimeError("Expected exactly one targetAbi in build.yaml")
+          build_path.write_text(build_yaml)
 
       - name: Build
         if: steps.detect.outputs.should_release == 'true'
@@ -189,7 +231,7 @@ jobs:
 
       - name: Package release artifact
         if: steps.detect.outputs.should_release == 'true'
-        run: zip -j "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" SegmentEditorPlugin/bin/Release/net9.0/SegmentEditorPlugin.dll
+        run: zip -j "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" SegmentEditorPlugin/bin/Release/net10.0/SegmentEditorPlugin.dll
 
       - name: Save upstream state
         if: steps.detect.outputs.should_release == 'true'
@@ -200,12 +242,12 @@ jobs:
       - name: Commit version and state updates
         if: steps.detect.outputs.should_release == 'true'
         run: |
-          git add Directory.Build.props .github/segment-editor-master.sha SegmentEditorPlugin/Configuration/configPage.html
+          git add Directory.Build.props .github/segment-editor-master.sha SegmentEditorPlugin/Configuration/configPage.html build.yaml
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
             git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "chore: release ${{ env.RELEASE_TAG }}"
-            git push origin HEAD:${{ github.event.repository.default_branch }}
+            git push origin HEAD:${{ github.ref_name }}
           fi
 
       - name: Publish release
@@ -214,29 +256,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
-          PRERELEASE="false"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.prerelease }}" = "true" ]; then
-            PRERELEASE="true"
+          PRERELEASE_FLAG=""
+          if [ "${{ inputs.prerelease }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
           fi
 
-          if [ "$PRERELEASE" = "true" ]; then
-            PRERELEASE_FLAG="--prerelease"
-          else
-            PRERELEASE_FLAG=""
-          fi
+          TARGET_SHA=$(git rev-parse HEAD)
 
           if gh release view "${{ env.RELEASE_TAG }}" >/dev/null 2>&1; then
             gh release upload "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --clobber
           else
-            gh release create "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --title "${{ env.RELEASE_TAG }}" --generate-notes --target "${{ github.event.repository.default_branch }}" ${PRERELEASE_FLAG}
+            gh release create "${{ env.RELEASE_TAG }}" "segment-editor-plugin-${{ env.RELEASE_TAG }}.zip" --title "${{ env.RELEASE_TAG }}" --generate-notes --target "$TARGET_SHA" ${PRERELEASE_FLAG}
           fi
-
-  dispatch-jellyfin-12:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Trigger 12.0 branch release check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run release.yml --repo "${{ github.repository }}" --ref 12.0
