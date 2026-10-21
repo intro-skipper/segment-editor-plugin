@@ -8,6 +8,7 @@ overview: "Segment editing UI embedded as a plugin page"
 description: "Packages the Segment Editor web app (built from intro-skipper/segment-editor) as a Jellyfin server plugin"
 category: "MoviesAndShows"
 owner: "Intro Skipper"
+imageUrl: "https://raw.githubusercontent.com/intro-skipper/segment-editor-plugin/master/images/logo.png"
 artifacts:
 - "SegmentEditorPlugin.dll"
 changelog: "- See the full changelog at [GitHub](https://github.com/intro-skipper/segment-editor-plugin/blob/master/CHANGELOG.md)"
